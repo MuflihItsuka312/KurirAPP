@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class ApiClient {
   // emulator Android -> backend di host: 10.0.2.2:3000
-  static const String baseUrl = 'http://10.87.40.24:3000';
+  static const String baseUrl = 'http://172.16.69.127:3000';
 
   static Future<http.Response> post(String path, Map<String, dynamic> body) {
     final uri = Uri.parse('$baseUrl$path');
