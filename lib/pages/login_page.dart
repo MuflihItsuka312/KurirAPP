@@ -1,9 +1,8 @@
 // lib/pages/login_page.dart
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../services/api_client.dart';
+import 'courier_register_page.dart';
 import 'home_page.dart';
 
 class CourierLoginPage extends StatefulWidget {
@@ -14,118 +13,186 @@ class CourierLoginPage extends StatefulWidget {
 }
 
 class _CourierLoginPageState extends State<CourierLoginPage> {
-  final _nameCtrl = TextEditingController();
-  final _plateCtrl = TextEditingController();
-  bool _loading = false;
-  String? _error;
+  final _formKey = GlobalKey<FormState>();
+  final _plateController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _plateCtrl.dispose();
+    _plateController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    final name = _nameCtrl.text.trim();
-    final plate = _plateCtrl.text.trim().toUpperCase();
+    if (!_formKey.currentState!.validate()) return;
 
-    if (name.isEmpty || plate.isEmpty) {
-      setState(() {
-        _error = 'Nama dan plat wajib diisi.';
-      });
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final resp = await ApiClient.post('/api/courier/login', {
-        'name': name,
-        'plate': plate,
-      });
+      final result = await ApiClient.loginCourier(
+        plate: _plateController.text.trim().toUpperCase(),
+        password: _passwordController.text,
+      );
 
-      if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body);
+      // Save token
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('courier_token', result['token']);
+      await prefs.setString('courier_id', result['data']['courierId']);
+      await prefs.setString('courier_name', result['data']['name']);
+      await prefs.setString('courier_plate', result['data']['plate']);
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('courier_name', data['courierName'] ?? name);
-        await prefs.setString('courier_plate', data['plate'] ?? plate);
-
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const CourierHomePage()),
         );
-      } else {
-        final body =
-            resp.body.isNotEmpty ? jsonDecode(resp.body) : {'error': ''};
-        setState(() {
-          _error = body['error'] ?? 'Login gagal (${resp.statusCode})';
-        });
       }
     } catch (e) {
-      setState(() {
-        _error = 'Error koneksi: $e';
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login gagal: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login Kurir')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Nama Kurir',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _plateCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Plat Nomor (mis: B1234CD)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _login,
-                child: _loading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo
+                  const Icon(
+                    Icons.local_shipping,
+                    size: 100,
+                    color: Colors.blue,
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Smart Locker',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Login Kurir',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Plate Field
+                  TextFormField(
+                    controller: _plateController,
+                    decoration: InputDecoration(
+                      labelText: 'Plat Kendaraan',
+                      prefixIcon: const Icon(Icons.directions_car),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      hintText: 'B 1234 CD',
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Plat kendaraan wajib diisi';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Password Field
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
-                      )
-                    : const Text('Login'),
+                        onPressed: () {
+                          setState(() => _obscurePassword = !_obscurePassword);
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Password wajib diisi';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 25),
+
+                  // Login Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'LOGIN',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Register Button
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CourierRegisterPage(),
+                        ),
+                      );
+                    },
+                    child: const Text('Belum punya akun? Daftar di sini'),
+                  ),
+                ],
               ),
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                style: const TextStyle(color: Colors.red, fontSize: 13),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
