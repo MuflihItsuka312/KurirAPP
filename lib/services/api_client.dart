@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class ApiClient {
   // emulator Android -> backend di host: 10.0.2.2:3000
-  static const String baseUrl = 'http://10.87.40.24:3000';
+  static const String baseUrl = 'https://serverr.shidou.cloud';
 
   static Future<http.Response> post(String path, Map<String, dynamic> body) {
     final uri = Uri.parse('$baseUrl$path');
@@ -52,16 +52,16 @@ class ApiClient {
     }
   }
 
-  // Login Courier
+  // Login Courier - Use NAME + password
   static Future<Map<String, dynamic>> loginCourier({
-    required String plate,
+    required String name,
     required String password,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/api/courier/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'plate': plate,
+        'name': name,
         'password': password,
       }),
     );

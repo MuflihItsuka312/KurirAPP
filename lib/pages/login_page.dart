@@ -14,7 +14,7 @@ class CourierLoginPage extends StatefulWidget {
 
 class _CourierLoginPageState extends State<CourierLoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _plateController = TextEditingController();
+  final _nameController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _isLoading = false;
@@ -22,7 +22,7 @@ class _CourierLoginPageState extends State<CourierLoginPage> {
 
   @override
   void dispose() {
-    _plateController.dispose();
+    _nameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -34,7 +34,7 @@ class _CourierLoginPageState extends State<CourierLoginPage> {
 
     try {
       final result = await ApiClient.loginCourier(
-        plate: _plateController.text.trim().toUpperCase(),
+        name: _nameController.text.trim(),
         password: _passwordController.text,
       );
 
@@ -101,21 +101,21 @@ class _CourierLoginPageState extends State<CourierLoginPage> {
                   ),
                   const SizedBox(height: 40),
 
-                  // Plate Field
+                  // Name Field
                   TextFormField(
-                    controller: _plateController,
+                    controller: _nameController,
                     decoration: InputDecoration(
-                      labelText: 'Plat Kendaraan',
-                      prefixIcon: const Icon(Icons.directions_car),
+                      labelText: 'Nama Lengkap',
+                      prefixIcon: const Icon(Icons.person),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      hintText: 'B 1234 CD',
+                      hintText: 'Nama sesuai registrasi',
                     ),
-                    textCapitalization: TextCapitalization.characters,
+                    textCapitalization: TextCapitalization.words,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Plat kendaraan wajib diisi';
+                        return 'Nama lengkap wajib diisi';
                       }
                       return null;
                     },

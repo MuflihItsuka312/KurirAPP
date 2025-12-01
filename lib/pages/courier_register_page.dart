@@ -20,8 +20,6 @@ class _CourierRegisterPageState extends State<CourierRegisterPage> {
 
   String? _selectedCompany;
   bool _isLoading = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
 
   final List<Map<String, String>> _companies = [
     {'value': 'anteraja', 'label': 'AnterAja'},
@@ -77,11 +75,10 @@ class _CourierRegisterPageState extends State<CourierRegisterPage> {
             ),
             content: Text(
               '${result['message']}\n\n'
-              'Courier ID: ${result['data']['courierId']}\n'
               'Nama: ${result['data']['name']}\n'
               'Perusahaan: ${result['data']['company'].toString().toUpperCase()}\n'
               'Plat: ${result['data']['plate']}\n\n'
-              'Status: Menunggu aktivasi admin',
+              'Silakan login dengan nama lengkap dan password Anda.',
             ),
             actions: [
               TextButton(
@@ -144,10 +141,15 @@ class _CourierRegisterPageState extends State<CourierRegisterPage> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  hintText: 'Contoh: John Doe',
                 ),
+                textCapitalization: TextCapitalization.words,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Nama wajib diisi';
+                    return 'Nama lengkap wajib diisi';
+                  }
+                  if (value.length < 3) {
+                    return 'Nama minimal 3 karakter';
                   }
                   return null;
                 },
@@ -221,20 +223,10 @@ class _CourierRegisterPageState extends State<CourierRegisterPage> {
               // Password Field
               TextFormField(
                 controller: _passwordController,
-                obscureText: _obscurePassword,
+                obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() => _obscurePassword = !_obscurePassword);
-                    },
-                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -254,23 +246,10 @@ class _CourierRegisterPageState extends State<CourierRegisterPage> {
               // Confirm Password Field
               TextFormField(
                 controller: _confirmPasswordController,
-                obscureText: _obscureConfirmPassword,
+                obscureText: true,
                 decoration: InputDecoration(
                   labelText: 'Konfirmasi Password',
                   prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(
-                        () =>
-                            _obscureConfirmPassword = !_obscureConfirmPassword,
-                      );
-                    },
-                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
