@@ -1,14 +1,17 @@
 // lib/pages/home_page.dart
 import 'dart:convert';
+import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api_client.dart';
+import '../services/notification_service.dart';
 import 'qr_scanner_page.dart';
 import 'login_page.dart';
 
 class CourierHomePage extends StatefulWidget {
-  const CourierHomePage({Key? key}) : super(key: key);
+  const CourierHomePage({super.key});
 
   @override
   State<CourierHomePage> createState() => _CourierHomePageState();
@@ -60,6 +63,11 @@ class _CourierHomePageState extends State<CourierHomePage> {
   }
 
   Future<void> _scanAndDeposit() async {
+    final scanStartTime = DateTime.now();
+    developer.log('========================================', name: 'KURIR');
+    developer.log('Starting QR scan at ${scanStartTime.toIso8601String()}', name: 'SCAN');
+    developer.log('========================================', name: 'KURIR');
+    
     setState(() {
       _statusText = null;
     });
@@ -70,7 +78,13 @@ class _CourierHomePageState extends State<CourierHomePage> {
       MaterialPageRoute(builder: (_) => const QrScannerPage()),
     );
 
+    final scanEndTime = DateTime.now();
+    final scanDuration = scanEndTime.difference(scanStartTime).inMilliseconds;
+
     if (token == null || token.isEmpty) {
+      developer.log('========================================', name: 'KURIR');
+      developer.log('CANCELLED after ${scanDuration}ms', name: 'SCAN');
+      developer.log('========================================', name: 'KURIR');
       setState(() {
         _statusText = 'Scan dibatalkan.';
         _statusColor = Colors.grey;
@@ -78,11 +92,20 @@ class _CourierHomePageState extends State<CourierHomePage> {
       return;
     }
 
+    developer.log('========================================', name: 'KURIR');
+    developer.log('SUCCESS in ${scanDuration}ms', name: 'SCAN');
+    developer.log('Token: $token', name: 'SCAN');
+    developer.log('========================================', name: 'KURIR');
+
     setState(() {
       _submitting = true;
       _statusText = 'Mengirim ke server...';
       _statusColor = Colors.blueGrey;
     });
+
+    final apiStartTime = DateTime.now();
+    developer.log('Sending request to server...', name: 'DEPOSIT');
+    developer.log('Plate: $_courierPlate', name: 'DEPOSIT');
 
     try {
       final resp = await ApiClient.post('/api/courier/deposit', {
@@ -90,8 +113,23 @@ class _CourierHomePageState extends State<CourierHomePage> {
         'plate': _courierPlate,
       });
 
+      final apiEndTime = DateTime.now();
+      final apiDuration = apiEndTime.difference(apiStartTime).inMilliseconds;
+
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
+        
+        developer.log('========================================', name: 'KURIR');
+        developer.log('SUCCESS in ${apiDuration}ms', name: 'DEPOSIT');
+        developer.log('Locker: ${data['lockerId']}, Resi: ${data['resi']}', name: 'DEPOSIT');
+        developer.log('========================================', name: 'KURIR');
+        
+        // Show notification
+        await NotificationService().showDepositSuccessNotification(
+          resi: data['resi'] ?? 'Unknown',
+          lockerId: data['lockerId'] ?? 'Unknown',
+        );
+        
         setState(() {
           _statusText =
               'Berhasil! Locker ${data['lockerId']} akan terbuka untuk resi ${data['resi']}.';
@@ -100,6 +138,12 @@ class _CourierHomePageState extends State<CourierHomePage> {
       } else {
         final body =
             resp.body.isNotEmpty ? jsonDecode(resp.body) : {'error': ''};
+        
+        developer.log('========================================', name: 'KURIR');
+        developer.log('FAILED in ${apiDuration}ms', name: 'DEPOSIT');
+        developer.log('Status: ${resp.statusCode}, Error: ${body['error']}', name: 'DEPOSIT');
+        developer.log('========================================', name: 'KURIR');
+        
         setState(() {
           _statusText =
               'Gagal titip ke locker (${resp.statusCode}): ${body['error'] ?? 'Unknown error'}';
@@ -107,17 +151,27 @@ class _CourierHomePageState extends State<CourierHomePage> {
         });
       }
     } catch (e) {
+      final apiEndTime = DateTime.now();
+      final apiDuration = apiEndTime.difference(apiStartTime).inMilliseconds;
+      
+      developer.log('========================================', name: 'KURIR');
+      developer.log('EXCEPTION after ${apiDuration}ms', name: 'DEPOSIT');
+      developer.log('Error: $e', name: 'DEPOSIT');
+      developer.log('========================================', name: 'KURIR');
+      
       setState(() {
         _statusText = 'Error koneksi: $e';
         _statusColor = Colors.red;
       });
     } finally {
+      final totalTime = DateTime.now().difference(scanStartTime).inMilliseconds;
+      developer.log('Total operation time: ${totalTime}ms', name: 'DEPOSIT');
+      
       setState(() {
         _submitting = false;
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
     if (_courierName.isEmpty || _courierPlate.isEmpty) {

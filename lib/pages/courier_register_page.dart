@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 
 class CourierRegisterPage extends StatefulWidget {
-  const CourierRegisterPage({Key? key}) : super(key: key);
+  const CourierRegisterPage({super.key});
 
   @override
   State<CourierRegisterPage> createState() => _CourierRegisterPageState();
@@ -158,7 +158,7 @@ class _CourierRegisterPageState extends State<CourierRegisterPage> {
 
               // Company Dropdown
               DropdownButtonFormField<String>(
-                value: _selectedCompany,
+                initialValue: _selectedCompany,
                 decoration: InputDecoration(
                   labelText: 'Perusahaan Ekspedisi',
                   prefixIcon: const Icon(Icons.business),

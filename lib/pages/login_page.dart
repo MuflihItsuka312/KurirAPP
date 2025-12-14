@@ -6,7 +6,7 @@ import 'courier_register_page.dart';
 import 'home_page.dart';
 
 class CourierLoginPage extends StatefulWidget {
-  const CourierLoginPage({Key? key}) : super(key: key);
+  const CourierLoginPage({super.key});
 
   @override
   State<CourierLoginPage> createState() => _CourierLoginPageState();

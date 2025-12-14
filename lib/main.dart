@@ -1,16 +1,22 @@
 // lib/main.dart
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'pages/login_page.dart';
 import 'pages/home_page.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  developer.log('=== KURIR APP V2 STARTING ===', name: 'KURIR');
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().initialize();
+  developer.log('=== KURIR APP V2 READY ===', name: 'KURIR');
   runApp(const CourierApp());
 }
 
 class CourierApp extends StatelessWidget {
-  const CourierApp({Key? key}) : super(key: key);
+  const CourierApp({super.key});
 
   Future<Widget> _decideStartPage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -25,7 +31,7 @@ class CourierApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'kurir revisi 1',
+      title: 'Kurir App v2',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
